@@ -2,10 +2,10 @@
   'use strict';
   const F=window.FarmCore, E=window.FarmEnvironment, C=window.FarmCamera, WORLD=C.world, $=id=>document.getElementById(id), canvas=$('farm'), ctx=canvas.getContext('2d');
   const keys=new Set(), reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
-  const game={time:0,ambient:0,running:false,paused:false,finished:false,reduced:reducedQuery.matches,sound:false,cut:new Set(),harvestIndex:0,last:0,player:{x:410,y:650,walk:0,angle:0},zoom:1,targetZoom:1,camera:{x:innerWidth<760?680:600,y:380},pan:null,assetReady:false,cloudReady:false};
+  const game={time:0,ambient:0,running:false,paused:false,finished:false,reduced:reducedQuery.matches,cut:new Set(),harvestIndex:0,last:0,player:{x:410,y:650,walk:0,angle:0},zoom:1,targetZoom:1,camera:{x:innerWidth<760?680:600,y:380},pan:null,assetReady:false,cloudReady:false};
   let hemisphere='south';try{hemisphere=localStorage.getItem('love-farm-hemisphere')==='north'?'north':'south';}catch{}
   let environment=E.at(new Date(),hemisphere),lastEnvironmentMinute=-1;
-  let W=innerWidth,H=innerHeight,DPR=1,scale=1,offsetX=0,offsetY=0,audio,nextNote=0,lastCaption='',lastPercent=-1,planeAngle=0,tractorAngle=0;
+  let W=innerWidth,H=innerHeight,DPR=1,scale=1,offsetX=0,offsetY=0,lastCaption='',lastPercent=-1,planeAngle=0,tractorAngle=0;
   const noise=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);};
   const angleLerp=(a,b,t)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
   function layer(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
@@ -176,19 +176,19 @@
     const s=F.state(game.time),caption=game.time===0?'Tem uma surpresa crescendo por aqui.':s.caption;
     if(caption!==lastCaption){$('caption').textContent=caption;lastCaption=caption;}
     const percent=Math.round(s.progress*100);if(percent!==lastPercent){$('progress').style.width=percent+'%';document.querySelector('.progress-track').setAttribute('aria-valuenow',percent);lastPercent=percent;}
-    if(s.done&&!game.finished){game.finished=true;game.running=false;$('harvest').disabled=false;$('harvest').innerHTML='<span>↻</span> Repetir a surpresa <span class="button-arrow">♡</span>';$('pause').disabled=true;$('scene-note').textContent='HOJE E EM TODAS AS PRIMAVERAS.';}
+    if(s.done&&!game.finished){game.finished=true;game.running=false;$('harvest').disabled=false;$('harvest').innerHTML='<span>↻</span> Repetir a surpresa <span class="button-arrow">♡</span>';$('pause').disabled=true;$('scene-note').textContent='Hoje e em todas as primaveras.';document.querySelector('.action-dock').classList.add('is-finished');}
   }
-  function tone(freq,duration=.85,volume=.02){if(!audio||!game.sound)return;const osc=audio.createOscillator(),gain=audio.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0,audio.currentTime);gain.gain.linearRampToValueAtTime(volume,audio.currentTime+.04);gain.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+duration);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(audio.currentTime+duration);}
   function tick(now){
     const dt=game.last?Math.min((now-game.last)/1000,.05):.016;game.last=now;
     if(!document.hidden&&!game.paused){game.ambient+=dt;move(dt);if(game.running){game.time=Math.min(F.duration,game.time+dt);if(game.time>=8){const index=F.routePosition(F.state(game.time).harvest).index;for(;game.harvestIndex<=index;game.harvestIndex++)cutCell(F.route[game.harvestIndex]);}addSmoke();}}
-    if(game.sound&&!game.paused&&!document.hidden&&game.ambient>nextNote){const notes=[261.63,329.63,392,523.25,440,392,329.63,293.66];tone(notes[Math.floor(game.ambient/2.2)%notes.length]);nextNote=game.ambient+2.2;}
     updateEnvironment();updateUI();render(game.paused?0:dt);requestAnimationFrame(tick);
   }
-  function start(){if(game.running)return;game.time=0;game.running=true;game.finished=false;game.paused=false;game.cut.clear();game.harvestIndex=0;smokeIndex=0;smokeCtx.clearRect(0,0,1200,760);smokeShadowCtx.clearRect(0,0,1200,760);seedField();game.targetZoom=1;game.pan=null;planeAngle=0;$('harvest').disabled=true;$('harvest').innerHTML='<span>♡</span> A surpresa está florescendo…';$('pause').disabled=false;$('pause').textContent='Ⅱ';$('scene-note').textContent='UM POUQUINHO DE AMOR, NO CÉU E NA TERRA.';canvas.focus({preventScroll:true});}
+  function start(){if(game.running)return;game.time=0;game.running=true;game.finished=false;game.paused=false;game.cut.clear();game.harvestIndex=0;smokeIndex=0;smokeCtx.clearRect(0,0,1200,760);smokeShadowCtx.clearRect(0,0,1200,760);seedField();game.targetZoom=1;game.pan=null;planeAngle=0;$('harvest').disabled=true;$('harvest').innerHTML='<span>♡</span> A surpresa está florescendo…';$('pause').disabled=false;$('pause').textContent='Ⅱ';$('scene-note').textContent='UM POUQUINHO DE AMOR, NO CÉU E NA TERRA.';document.querySelector('.action-dock').classList.remove('is-finished');canvas.focus({preventScroll:true});}
   $('harvest').addEventListener('click',start);
   $('pause').addEventListener('click',()=>{game.paused=!game.paused;$('pause').textContent=game.paused?'▷':'Ⅱ';$('pause').setAttribute('aria-label',game.paused?'Continuar sequência':'Pausar sequência');});
-  $('sound').addEventListener('click',async()=>{try{if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();game.sound=!game.sound;$('sound').setAttribute('aria-pressed',String(game.sound));$('sound').title=game.sound?'Desligar som':'Ativar som';if(game.sound)tone(523.25);}catch{$('sound').title='Som indisponível neste navegador';}});
+  function toggleMusic(open){const panel=$('music-panel');panel.hidden=!open;$('music').setAttribute('aria-expanded',String(open));if(open&&!$('spotify-player').src)$('spotify-player').src=$('spotify-player').dataset.src;}
+  $('music').addEventListener('click',()=>toggleMusic($('music-panel').hidden));
+  $('close-music').addEventListener('click',()=>toggleMusic(false));
   function setMotion(){$('motion').setAttribute('aria-pressed',String(game.reduced));$('motion').title=game.reduced?'Movimento reduzido ativado':'Reduzir movimentos decorativos';}
   $('motion').addEventListener('click',()=>{game.reduced=!game.reduced;setMotion();});setMotion();
   $('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if($('game').requestFullscreen)await $('game').requestFullscreen();else $('fullscreen').title='O jogo já ocupa toda a janela';}catch{$('fullscreen').title='Use F11 no navegador para tela cheia';}});
@@ -214,7 +214,7 @@
   window.addEventListener('keydown',e=>{const key=e.key.length===1?e.key.toLowerCase():e.key;if(controls.has(key)&&!$('flower-dialog').open&&!$('environment-dialog').open&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();keys.add(key);}});
   window.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));window.addEventListener('blur',()=>{keys.clear();pointers.clear();gestureStart();});document.addEventListener('visibilitychange',()=>{keys.clear();pointers.clear();gestureStart();game.last=0;updateEnvironment(true);});
   document.querySelectorAll('[data-key]').forEach(button=>{button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);keys.add(button.dataset.key);});['pointerup','pointercancel','lostpointercapture'].forEach(type=>button.addEventListener(type,()=>keys.delete(button.dataset.key)));});
-  $('flower-info').addEventListener('click',()=>{keys.clear();$('flower-dialog').showModal();});[$('close-dialog'),$('dialog-ok')].forEach(b=>b.addEventListener('click',()=>$('flower-dialog').close()));
+  $('flower-info').addEventListener('click',()=>{keys.clear();$('flower-dialog').showModal();});$('close-dialog').addEventListener('click',()=>$('flower-dialog').close());
   $('environment-summary').addEventListener('click',()=>{keys.clear();updateEnvironment(true);$('environment-dialog').showModal();});
   $('close-environment').addEventListener('click',()=>$('environment-dialog').close());
   $('hemisphere').addEventListener('change',()=>{hemisphere=$('hemisphere').value;try{localStorage.setItem('love-farm-hemisphere',hemisphere);}catch{}updateEnvironment(true);});

@@ -1,5 +1,9 @@
 # Artes da nova vista aérea
 
+## Fotografia de miosótis
+
+`forget-me-not.jpg` é uma cópia local de [“Woodland Forget-me-not (Myosotis sylvatica), close shot.jpg”](https://commons.wikimedia.org/wiki/File:Woodland_Forget-me-not_(Myosotis_sylvatica),_close_shot.jpg), foto de **Esaox**, disponibilizada sob [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). O autor dedicou a imagem ao domínio público; foi usada uma versão de 960 × 960 pixels do Wikimedia Commons. `dialog-branch.svg` foi desenhado para este projeto.
+
 Geradas com a ferramenta integrada **ImageGen**, em 9 de outubro de 2026. Os PNGs originais foram preservados na pasta de imagens geradas do ambiente. As cópias deste projeto foram convertidas para WebP com qualidade 93%, preservando o canal alfa da nuvem. Não há carregamento externo.
 
 - `assets/farm-aerial.webp`: cenário, 1575 × 998 pixels.

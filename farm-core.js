@@ -38,7 +38,7 @@
     const f = clamp(progress) * (route.length - 1), index = Math.floor(f), a = route[index], b = route[Math.min(index + 1, route.length - 1)];
     return { x: lerp(a.x,b.x,f-index), y: lerp(a.y,b.y,f-index), angle: Math.atan2(b.y-a.y,b.x-a.x), index };
   }
-  const phases = [[3,'O avião está se preparando…'],[7,'Um pouquinho de amor vai decolar.'],[23,'Para escrever no céu o que mora aqui dentro.'],[34,'E deixar no jardim uma lembrança de nós.'],[Infinity,'A ❤️ R · I LOVE U — hoje e em todas as primaveras.']];
+  const phases = [[3,'O avião está se preparando…'],[7,'Um pouquinho de amor vai decolar.'],[23,'Para escrever no céu o que mora aqui dentro.'],[34,'E deixar no jardim uma lembrança de nós.'],[Infinity,'Rute 1:16 · A ❤️ R · I LOVE U']];
   function state(time) { return { time, progress: clamp(time/36), harvest: clamp((time-8)/26), writing: clamp((time-7)/16), done: time >= 36, caption: phases.find(p => time < p[0])[1] }; }
   const api = { clamp, lerp, field, rows, route, smoke, routePosition, state, duration:36 };
   root.FarmCore = api;
