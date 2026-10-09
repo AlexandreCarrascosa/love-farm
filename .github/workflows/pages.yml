@@ -25,13 +25,16 @@ jobs:
         run: |
           node --check game.js
           node --check farm-core.js
-          node --test tests/core.test.cjs
+          node --check environment.js
+          node --check farm-camera.js
+          node --test tests/*.test.cjs
       - uses: actions/configure-pages@v5
       - name: Prepare static files
         run: |
           mkdir public
-          cp index.html style.css farm-core.js game.js favicon.svg public/
+          cp index.html style.css farm-core.js farm-camera.js environment.js game.js favicon.svg public/
           cp -R assets public/assets
+          cp -R vendor public/vendor
           touch public/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

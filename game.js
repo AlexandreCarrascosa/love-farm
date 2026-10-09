@@ -1,8 +1,10 @@
 (() => {
   'use strict';
-  const F=window.FarmCore, $=id=>document.getElementById(id), canvas=$('farm'), ctx=canvas.getContext('2d');
+  const F=window.FarmCore, E=window.FarmEnvironment, C=window.FarmCamera, WORLD=C.world, $=id=>document.getElementById(id), canvas=$('farm'), ctx=canvas.getContext('2d');
   const keys=new Set(), reducedQuery=matchMedia('(prefers-reduced-motion: reduce)');
-  const game={time:0,ambient:0,running:false,paused:false,finished:false,reduced:reducedQuery.matches,sound:false,cut:new Set(),harvestIndex:0,last:0,player:{x:351,y:485,walk:0,angle:0},zoom:innerWidth<760?1.05:1.02,targetZoom:innerWidth<760?1.05:1.02,camera:{x:600,y:380},pan:null,assetReady:false,cloudReady:false};
+  const game={time:0,ambient:0,running:false,paused:false,finished:false,reduced:reducedQuery.matches,sound:false,cut:new Set(),harvestIndex:0,last:0,player:{x:410,y:650,walk:0,angle:0},zoom:1,targetZoom:1,camera:{x:innerWidth<760?680:600,y:380},pan:null,assetReady:false,cloudReady:false};
+  let hemisphere='south';try{hemisphere=localStorage.getItem('love-farm-hemisphere')==='north'?'north':'south';}catch{}
+  let environment=E.at(new Date(),hemisphere),lastEnvironmentMinute=-1;
   let W=innerWidth,H=innerHeight,DPR=1,scale=1,offsetX=0,offsetY=0,audio,nextNote=0,lastCaption='',lastPercent=-1,planeAngle=0,tractorAngle=0;
   const noise=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);};
   const angleLerp=(a,b,t)=>a+Math.atan2(Math.sin(b-a),Math.cos(b-a))*t;
@@ -12,20 +14,12 @@
   function line(c,points,color,width=1){c.strokeStyle=color;c.lineWidth=width;c.lineCap='round';c.lineJoin='round';c.beginPath();points.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.stroke();}
   function poly(c,points,color){c.fillStyle=color;c.beginPath();points.forEach((p,i)=>i?c.lineTo(...p):c.moveTo(...p));c.closePath();c.fill();}
   function radial(c,x,y,r,inside,outside){const g=c.createRadialGradient(x-r*.15,y-r*.2,0,x,y,r);g.addColorStop(0,inside);g.addColorStop(1,outside);c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);}
-  const ground=layer(1200,760),gctx=ground.getContext('2d'),crops=layer(1200,760),cropCtx=crops.getContext('2d'),smokeLayer=layer(1200,760),smokeCtx=smokeLayer.getContext('2d');
-  const grassTile=layer(512,512),grassCtx=grassTile.getContext('2d');
-  grassCtx.fillStyle='#566238';grassCtx.fillRect(0,0,512,512);
-  for(let i=0;i<12000;i++){const x=noise(i)*512,y=noise(i+781)*512;line(grassCtx,[[x,y],[x+noise(i+17)*2,y-1-noise(i+5)*3]],['#83925155','#3c4d2c88','#b2ac6844','#273b2344'][i%4],.7);}
-  let grassPattern=ctx.createPattern(grassTile,'repeat');
-  gctx.fillStyle=grassPattern;gctx.fillRect(0,0,1200,760);
+  const ground=layer(WORLD.width,WORLD.height),gctx=ground.getContext('2d'),crops=layer(1200,760),cropCtx=crops.getContext('2d'),smokeLayer=layer(1200,760),smokeCtx=smokeLayer.getContext('2d'),smokeShadowLayer=layer(1200,760),smokeShadowCtx=smokeShadowLayer.getContext('2d');
+  gctx.fillStyle='#49623a';gctx.fillRect(0,0,WORLD.width,WORLD.height);
   const background=new Image();
-  background.onload=()=>{
-    gctx.drawImage(background,0,0,1200,760);
-    for(let row=0;row<2;row++)for(let col=0;col<2;col++){grassCtx.save();grassCtx.translate(col?512:0,row?512:0);grassCtx.scale(col?-1:1,row?-1:1);grassCtx.drawImage(background,background.width*.48,background.height*.05,background.width*.12,background.height*.13,0,0,256,256);grassCtx.restore();}
-    grassPattern=ctx.createPattern(grassTile,'repeat');game.assetReady=true;$('loading').classList.add('loaded');
-  };
-  background.onerror=()=>{$('loading').classList.add('loaded');$('caption').textContent='Não foi possível carregar o terreno. Recarregue a página.';};
-  background.src='assets/farm-aerial.webp';
+  background.onload=()=>{gctx.drawImage(background,0,0,WORLD.width,WORLD.height);game.assetReady=true;$('loading').classList.add('loaded');};
+  background.onerror=()=>{$('loading').textContent='Não foi possível carregar a paisagem. Recarregue a página.';};
+  background.src='assets/farm-world.webp';
   // Draw vegetation once at high resolution. Harvest updates only the touched cell.
   function flower(c,x,y,r,seed){
     ellipse(c,x+1,y+1,r*2.5,r*1.9,'#14282055');
@@ -71,8 +65,9 @@
   cloudImage.onload=()=>{clouds.forEach((c,i)=>{const sprite=layer(620,360),q=sprite.getContext('2d');if(i===1){q.translate(620,0);q.scale(-1,1);}q.drawImage(cloudImage,0,0,620,360);c.image=sprite;cacheCloudShadow(c);});game.cloudReady=true;};
   cloudImage.src='assets/cloud.webp';
   const smokePuff=layer(40,40),sp=smokePuff.getContext('2d');radial(sp,20,20,18,'rgba(255,254,240,.65)','rgba(255,254,247,0)');radial(sp,18,17,11,'rgba(255,255,248,.65)','rgba(255,255,247,0)');
+  const shadowPuff=layer(40,40),shadowPuffCtx=shadowPuff.getContext('2d');radial(shadowPuffCtx,20,20,19,'rgba(10,20,16,.26)','rgba(10,20,16,0)');
   let smokeIndex=0;
-  function addSmoke(){const target=Math.floor(F.state(game.time).writing*F.smoke.length);for(;smokeIndex<target;smokeIndex++){const p=F.smoke[smokeIndex];if(!p.ink)continue;const sz=17+noise(smokeIndex)*7;smokeCtx.drawImage(smokePuff,p.x-sz/2,p.y-sz/2,sz,sz);}}
+  function addSmoke(){const target=Math.floor(F.state(game.time).writing*F.smoke.length);for(;smokeIndex<target;smokeIndex++){const p=F.smoke[smokeIndex];if(!p.ink)continue;const sz=17+noise(smokeIndex)*7;smokeCtx.drawImage(smokePuff,p.x-sz/2,p.y-sz/2,sz,sz);smokeShadowCtx.drawImage(shadowPuff,p.x+22-sz,p.y+33-sz,sz*2,sz*2);}}
   function vehicleShadow(x,y,rx,ry){ctx.save();ctx.filter='blur(4px)';ellipse(ctx,x+9,y+10,rx,ry,'#11211770');ctx.restore();}
   function tractor(x,y,a){
     vehicleShadow(x,y,22,15);ctx.save();ctx.translate(x,y);ctx.rotate(a);
@@ -122,15 +117,39 @@
   function sign(){ctx.save();ctx.shadowColor='#12201970';ctx.shadowBlur=3;ctx.shadowOffsetY=3;rect(ctx,653,376,131,19,'#c3b084',2);ctx.shadowBlur=0;ctx.shadowOffsetY=0;ctx.font='8px Georgia';ctx.textAlign='center';ctx.fillStyle='#3e4d32';ctx.fillText('MIOSÓTIS · forget-me-not',718.5,389);ctx.restore();}
   function cloudPositions(){return clouds.map((c,i)=>({...c,x:c.x+(game.reduced?0:Math.sin(game.ambient*.016+i)*70)+game.ambient*(game.reduced?0:c.speed*.18)}));}
   function updateCamera(dt){
-    game.zoom=F.lerp(game.zoom,game.targetZoom,Math.min(1,dt*4));scale=Math.min(W/1200,H/760)*game.zoom;
-    const follow=game.targetZoom>1.35&&!game.running;
-    const target=game.pan||(follow?game.player:{x:600,y:380});const k=game.reduced?1:Math.min(1,dt*4);
-    game.camera.x=F.lerp(game.camera.x,target.x,k);game.camera.y=F.lerp(game.camera.y,target.y,k);
-    offsetX=W/2-game.camera.x*scale;offsetY=H*(W<760?.44:.5)-game.camera.y*scale;
+    const k=game.reduced?1:Math.min(1,dt*5);
+    game.zoom=F.lerp(game.zoom,game.targetZoom,k);
+    const follow=game.targetZoom>1.15&&!game.running;
+    const cinemaX=W<760?(game.time<7?F.lerp(490,680,F.clamp(game.time/7)):680):600;
+    const target=game.pan||(follow?game.player:{x:game.running?cinemaX:(W<760?680:600),y:380});
+    const frame=C.frame(W,H,game.zoom,{x:F.lerp(game.camera.x,target.x,k),y:F.lerp(game.camera.y,target.y,k)});
+    game.camera.x=frame.x;game.camera.y=frame.y;scale=frame.scale;offsetX=frame.offsetX;offsetY=frame.offsetY;
+  }
+  function updateEnvironment(force=false){
+    const now=new Date(),minute=Math.floor(+now/60000);if(!force&&minute===lastEnvironmentMinute)return;
+    environment=E.at(now,hemisphere);lastEnvironmentMinute=minute;
+    $('season').textContent=environment.season;$('day-period').textContent=environment.light.period;
+    $('local-clock').textContent=environment.clock;$('local-clock').dateTime=environment.date;
+    $('day-icon').textContent=environment.light.daylight>.4?'☀':'☾';
+    $('moon-icon').textContent=environment.moon.icon;$('moon-phase').textContent=environment.moon.name;
+    $('moon-percent').textContent=Math.round(environment.moon.illumination*100)+'% iluminada';
+    $('environment-summary').title='Horário local · '+environment.timezone+' · Hemisfério '+(hemisphere==='south'?'Sul':'Norte')+' · Ver detalhes';
+    $('environment-details').textContent='Agora: '+environment.clock+' ('+environment.timezone+'). '+environment.moon.name+', com '+(environment.moon.illumination*100).toFixed(1).replace('.',',')+'% da face visível iluminada. Estação atual: '+environment.season.toLowerCase()+'.';
+    $('hemisphere').value=hemisphere;
+  }
+  function applyEnvironment(){
+    const d=environment.light.daylight,g=environment.light.golden;
+    const seasonal={'Primavera':[244,255,235],'Verão':[255,249,217],'Outono':[249,224,188],'Inverno':[218,231,247]}[environment.season];
+    const night=[65,83,125],rgb=seasonal.map((n,i)=>Math.round(F.lerp(night[i],n,d)*(i===2?1-g*.22:1)));
+    ctx.save();ctx.setTransform(DPR,0,0,DPR,0,0);ctx.globalCompositeOperation='multiply';ctx.fillStyle='rgb('+rgb.join(',')+')';ctx.fillRect(0,0,W,H);ctx.restore();
+    if(d<.75){ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=1-d;
+      for(const p of [[218,431,43],[352,464,24],[390,647,25],[1005,648,24]]){radial(ctx,p[0],p[1],p[2],'rgba(255,190,84,.65)','rgba(255,149,49,0)');ellipse(ctx,p[0],p[1],1.4,1.4,'#ffe7ac');}
+      ctx.restore();
+    }
   }
   function render(dt){
     updateCamera(dt);ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);
-    ctx.translate(offsetX,offsetY);ctx.scale(scale,scale);ctx.fillStyle=grassPattern;ctx.fillRect(-3000,-3000,7200,6760);ctx.drawImage(ground,0,0);ctx.drawImage(crops,0,0);sign();
+    ctx.translate(offsetX,offsetY);ctx.scale(scale,scale);ctx.drawImage(ground,WORLD.x,WORLD.y,WORLD.width,WORLD.height);ctx.drawImage(crops,0,0);sign();
     const cloudList=cloudPositions();
     // Cloud shadows move with their clouds, at a lower elevation than the aircraft.
     for(const c of cloudList){ctx.save();ctx.globalAlpha=.16;ctx.drawImage(c.shadow,c.x+38,c.y+62,620*c.s,360*c.s);ctx.restore();}
@@ -140,10 +159,10 @@
     else if(game.time<=34)tp=F.routePosition(F.state(game.time).harvest);
     else{const end=F.routePosition(1),t=F.clamp((game.time-34)/2);tp={x:F.lerp(end.x,1006,t),y:F.lerp(end.y,640,t),angle:.6};}
     tractorAngle=angleLerp(tractorAngle,tp.angle,Math.min(1,dt*14));tractor(tp.x,tp.y,tractorAngle);person();
-    if(game.time>7){ctx.save();ctx.globalAlpha=.25;ctx.filter='brightness(0) blur(5px)';ctx.drawImage(smokeLayer,22,33);ctx.restore();ctx.drawImage(smokeLayer,0,0);}
+    if(game.time>7){ctx.drawImage(smokeShadowLayer,0,0);ctx.drawImage(smokeLayer,0,0);}
     const p=planeState(dt);if(p.x<1350)airplane(p);
     for(const c of cloudList){ctx.save();ctx.globalAlpha=game.running?.65:.87;ctx.drawImage(c.image,c.x,c.y,620*c.s,360*c.s);ctx.restore();}
-    ctx.setTransform(DPR,0,0,DPR,0,0);
+    applyEnvironment();ctx.setTransform(DPR,0,0,DPR,0,0);
     const vignette=ctx.createRadialGradient(W*.45,H*.45,Math.min(W,H)*.2,W*.5,H*.5,Math.max(W,H)*.7);vignette.addColorStop(0,'#0c241500');vignette.addColorStop(1,'#0c241550');ctx.fillStyle=vignette;ctx.fillRect(0,0,W,H);
   }
   const obstacles=[{x:113,y:287,w:218,h:147},{x:F.field.x-7,y:F.field.y-7,w:F.field.cols*F.field.cellW+14,h:F.field.rows*F.field.cellH+14},{x:1034,y:434,w:135,h:201}];
@@ -164,9 +183,9 @@
     const dt=game.last?Math.min((now-game.last)/1000,.05):.016;game.last=now;
     if(!document.hidden&&!game.paused){game.ambient+=dt;move(dt);if(game.running){game.time=Math.min(F.duration,game.time+dt);if(game.time>=8){const index=F.routePosition(F.state(game.time).harvest).index;for(;game.harvestIndex<=index;game.harvestIndex++)cutCell(F.route[game.harvestIndex]);}addSmoke();}}
     if(game.sound&&!game.paused&&!document.hidden&&game.ambient>nextNote){const notes=[261.63,329.63,392,523.25,440,392,329.63,293.66];tone(notes[Math.floor(game.ambient/2.2)%notes.length]);nextNote=game.ambient+2.2;}
-    updateUI();render(game.paused?0:dt);requestAnimationFrame(tick);
+    updateEnvironment();updateUI();render(game.paused?0:dt);requestAnimationFrame(tick);
   }
-  function start(){if(game.running)return;game.time=0;game.running=true;game.finished=false;game.paused=false;game.cut.clear();game.harvestIndex=0;smokeIndex=0;smokeCtx.clearRect(0,0,1200,760);seedField();game.targetZoom=1;game.pan=null;planeAngle=0;$('harvest').disabled=true;$('harvest').innerHTML='<span>♡</span> A surpresa está florescendo…';$('pause').disabled=false;$('pause').textContent='Ⅱ';$('scene-note').textContent='UM POUQUINHO DE AMOR, NO CÉU E NA TERRA.';canvas.focus({preventScroll:true});}
+  function start(){if(game.running)return;game.time=0;game.running=true;game.finished=false;game.paused=false;game.cut.clear();game.harvestIndex=0;smokeIndex=0;smokeCtx.clearRect(0,0,1200,760);smokeShadowCtx.clearRect(0,0,1200,760);seedField();game.targetZoom=1;game.pan=null;planeAngle=0;$('harvest').disabled=true;$('harvest').innerHTML='<span>♡</span> A surpresa está florescendo…';$('pause').disabled=false;$('pause').textContent='Ⅱ';$('scene-note').textContent='UM POUQUINHO DE AMOR, NO CÉU E NA TERRA.';canvas.focus({preventScroll:true});}
   $('harvest').addEventListener('click',start);
   $('pause').addEventListener('click',()=>{game.paused=!game.paused;$('pause').textContent=game.paused?'▷':'Ⅱ';$('pause').setAttribute('aria-label',game.paused?'Continuar sequência':'Pausar sequência');});
   $('sound').addEventListener('click',async()=>{try{if(!audio)audio=new(window.AudioContext||window.webkitAudioContext)();await audio.resume();game.sound=!game.sound;$('sound').setAttribute('aria-pressed',String(game.sound));$('sound').title=game.sound?'Desligar som':'Ativar som';if(game.sound)tone(523.25);}catch{$('sound').title='Som indisponível neste navegador';}});
@@ -174,19 +193,32 @@
   $('motion').addEventListener('click',()=>{game.reduced=!game.reduced;setMotion();});setMotion();
   $('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else if($('game').requestFullscreen)await $('game').requestFullscreen();else $('fullscreen').title='O jogo já ocupa toda a janela';}catch{$('fullscreen').title='Use F11 no navegador para tela cheia';}});
   document.addEventListener('fullscreenchange',()=>{$('fullscreen').setAttribute('aria-pressed',String(Boolean(document.fullscreenElement)));resize();});
-  function zoomBy(amount){game.targetZoom=F.clamp(game.targetZoom+amount,.75,3);game.pan=null;}
+  function zoomBy(amount){game.targetZoom=F.clamp(game.targetZoom+amount,1,3);game.pan=null;}
   $('zoom-in').addEventListener('click',()=>zoomBy(.25));$('zoom-out').addEventListener('click',()=>zoomBy(-.25));$('reset-view').addEventListener('click',()=>{game.targetZoom=1;game.pan=null;});
   canvas.addEventListener('wheel',e=>{e.preventDefault();zoomBy(e.deltaY<0?.12:-.12);},{passive:false});
-  let drag;
-  canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cx:game.camera.x,cy:game.camera.y};});
-  canvas.addEventListener('pointermove',e=>{if(!drag)return;game.pan={x:F.clamp(drag.cx-(e.clientX-drag.x)/scale,150,1050),y:F.clamp(drag.cy-(e.clientY-drag.y)/scale,120,640)};});
-  ['pointerup','pointercancel','lostpointercapture'].forEach(type=>canvas.addEventListener(type,()=>{drag=null;}));
+  const pointers=new Map();let drag=null,pinch=null;
+  function gestureStart(){
+    const list=[...pointers.values()];
+    if(list.length===2){const a=list[0],b=list[1],mx=(a.x+b.x)/2,my=(a.y+b.y)/2;pinch={distance:Math.hypot(b.x-a.x,b.y-a.y),zoom:game.targetZoom,worldX:(mx-offsetX)/scale,worldY:(my-offsetY)/scale};drag=null;}
+    else if(list.length===1){drag={...list[0],cx:game.camera.x,cy:game.camera.y};pinch=null;}
+    else{drag=null;pinch=null;}
+  }
+  canvas.addEventListener('pointerdown',e=>{e.preventDefault();canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});gestureStart();});
+  canvas.addEventListener('pointermove',e=>{
+    if(!pointers.has(e.pointerId))return;e.preventDefault();pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(pinch&&pointers.size===2){const [a,b]=[...pointers.values()];game.targetZoom=F.clamp(pinch.zoom*Math.hypot(b.x-a.x,b.y-a.y)/Math.max(1,pinch.distance),1,3);const f=C.frame(W,H,game.targetZoom,game.camera);game.pan={x:pinch.worldX-((a.x+b.x)/2-W/2)/f.scale,y:pinch.worldY-((a.y+b.y)/2-H*(W<760?.44:.5))/f.scale};}
+    else if(drag)game.pan={x:drag.cx-(e.clientX-drag.x)/scale,y:drag.cy-(e.clientY-drag.y)/scale};
+  });
+  ['pointerup','pointercancel','lostpointercapture'].forEach(type=>canvas.addEventListener(type,e=>{pointers.delete(e.pointerId);gestureStart();}));
   const controls=new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d']);
-  window.addEventListener('keydown',e=>{const key=e.key.length===1?e.key.toLowerCase():e.key;if(controls.has(key)&&!$('flower-dialog').open&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();keys.add(key);}});
-  window.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));window.addEventListener('blur',()=>keys.clear());document.addEventListener('visibilitychange',()=>{keys.clear();game.last=0;});
+  window.addEventListener('keydown',e=>{const key=e.key.length===1?e.key.toLowerCase():e.key;if(controls.has(key)&&!$('flower-dialog').open&&!$('environment-dialog').open&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();keys.add(key);}});
+  window.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));window.addEventListener('blur',()=>{keys.clear();pointers.clear();gestureStart();});document.addEventListener('visibilitychange',()=>{keys.clear();pointers.clear();gestureStart();game.last=0;updateEnvironment(true);});
   document.querySelectorAll('[data-key]').forEach(button=>{button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);keys.add(button.dataset.key);});['pointerup','pointercancel','lostpointercapture'].forEach(type=>button.addEventListener(type,()=>keys.delete(button.dataset.key)));});
   $('flower-info').addEventListener('click',()=>{keys.clear();$('flower-dialog').showModal();});[$('close-dialog'),$('dialog-ok')].forEach(b=>b.addEventListener('click',()=>$('flower-dialog').close()));
-  function resize(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);render(.016);}
-  window.addEventListener('resize',resize);resize();requestAnimationFrame(tick);
-  window.loveFarm=Object.freeze({snapshot:()=>({time:game.time,running:game.running,paused:game.paused,finished:game.finished,harvested:game.cut.size,player:{...game.player},assetReady:game.assetReady,cloudReady:game.cloudReady,zoom:game.zoom,viewport:{width:W,height:H}})});
+  $('environment-summary').addEventListener('click',()=>{keys.clear();updateEnvironment(true);$('environment-dialog').showModal();});
+  $('close-environment').addEventListener('click',()=>$('environment-dialog').close());
+  $('hemisphere').addEventListener('change',()=>{hemisphere=$('hemisphere').value;try{localStorage.setItem('love-farm-hemisphere',hemisphere);}catch{}updateEnvironment(true);});
+  function resize(){const bounds=$('game').getBoundingClientRect();W=bounds.width;H=bounds.height;DPR=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);render(.016);}
+  window.addEventListener('resize',resize);if(window.visualViewport)window.visualViewport.addEventListener('resize',resize);updateEnvironment(true);resize();requestAnimationFrame(tick);
+  window.loveFarm=Object.freeze({snapshot:()=>({time:game.time,running:game.running,paused:game.paused,finished:game.finished,harvested:game.cut.size,player:{...game.player},assetReady:game.assetReady,cloudReady:game.cloudReady,zoom:game.zoom,environment:JSON.parse(JSON.stringify(environment)),camera:{x:game.camera.x,y:game.camera.y,scale,offsetX,offsetY},world:{...WORLD},viewport:{width:W,height:H}})});
 })();

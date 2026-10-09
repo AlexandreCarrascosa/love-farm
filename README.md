@@ -11,7 +11,7 @@ Abra `index.html` em um navegador moderno. Mantenha a pasta `assets` junto dos a
 O jogo ocupa toda a janela, sem rolagem. O botão **Tela cheia** também permite esconder a interface do navegador quando suportado.
 
 - **WASD / setas:** caminhar; no celular, use os botões sobre o cenário.
-- **+ / − / roda do mouse:** aproximar ou afastar a câmera. Ao aproximar e caminhar, a câmera acompanha o personagem.
+- **+ / − / roda do mouse:** aproximar ou afastar a câmera (ou faça pinça no celular). Ao aproximar e caminhar, a câmera acompanha o personagem.
 - **Arrastar o cenário:** mover a câmera.
 - **⌖:** enquadrar a fazenda inteira.
 - **Colheita automática:** iniciar a sequência de 36 segundos. A câmera se afasta para mostrar as mensagens.
@@ -53,4 +53,15 @@ node --test tests/core.test.cjs
 
 A reformulação foi verificada no navegador em tela de computador, celular vertical e horizontal: carregamento offline, movimento, zoom, tela cheia, detalhe das flores, colheita progressiva, pausa, mensagens completas, repetição e som.
 
-Sem rastreamento, armazenamento de dados pessoais ou chamadas de rede durante o jogo. O estado recomeça ao recarregar.
+Sem rastreamento, armazenamento de dados pessoais ou chamadas de rede durante o jogo. A preferência de hemisfério pode ser salva localmente. O estado recomeça ao recarregar.
+## Paisagem contínua e ambiente em tempo real
+
+A câmera agora utiliza um mapa ampliado único (`assets/farm-world.webp`), sem espelhamento, repetição de textura ou faixas nas bordas. Seus limites garantem cobertura completa também em retrato, paisagem e telas ultralargas. No celular, use as setas para andar, arraste para olhar ao redor e faça o gesto de pinça para aproximar ou afastar; os botões de zoom continuam disponíveis. A visão geral enquadra o campo e as mensagens, ajustando o trecho visível à proporção da tela.
+
+O painel superior informa **hora local, período do dia, estação e fase da Lua**, incluindo percentual iluminado. A luz passa por amanhecer, dia, entardecer e noite; as cores acompanham a estação e a fazenda acende luzes à noite. As informações são recalculadas a cada minuto e ao voltar para a aba.
+
+As estações seguem os equinócios e solstícios calculados. O padrão é **Hemisfério Sul (Brasil)**; toque no painel para alternar para o Norte. Somente essa preferência é guardada no dispositivo. A fase lunar usa o instante atual, sem chamadas de rede. A iluminação é uma interpretação do relógio local, não uma previsão meteorológica nem um cálculo de nascer do Sol para a localização exata.
+
+O projeto inclui uma cópia local do **Astronomy Engine 2.1.19**, com licença MIT em `vendor/`. Continua funcionando offline e não precisa de instalação nem de dependências externas em tempo de execução.
+
+Verificações adicionais: `node --test tests/*.test.cjs`. Incluem cobertura de câmera em diferentes telas e zooms, mudanças de estação, fases lunares comparadas às datas do USNO e iluminação ao meio-dia/meia-noite.
