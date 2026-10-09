@@ -1,40 +1,49 @@
 # Love Farm 🌼
 
-Uma pequena fazenda ilustrada, feita com HTML, CSS e JavaScript puro. Funciona offline, sem instalação, banco de dados, fontes remotas ou bibliotecas externas.
+Um refúgio de fazenda em **vista aérea**, com terreno natural detalhado, nuvens volumosas em movimento, sombras, miosótis e uma surpresa romântica. HTML, CSS e JavaScript puro, sem banco de dados ou dependências externas.
 
-## Jogar no computador
+**Jogar:** https://alexandrecarrascosa.github.io/love-farm/
 
-Abra **index.html** com um navegador moderno. Mantenha os arquivos da pasta juntos.
+## Uso local
 
-- **WASD ou setas:** caminhar pela fazenda.
-- **Colheita automática:** iniciar a surpresa de aproximadamente 36 segundos.
-- **Pausar / Continuar:** pausar e retomar a sequência.
-- **Repetir a surpresa:** replantar o campo e assistir novamente.
-- **Som:** ativar uma melodia suave, sintetizada no próprio navegador; começa desligado.
-- **Movimento reduzido:** desativar o balanço das flores, as borboletas e movimentos decorativos. Os movimentos essenciais da colheita permanecem; use Pausar quando desejar. A preferência do sistema é respeitada ao abrir.
-- **No celular:** usar o controle de setas na tela. Girar o aparelho pode facilitar a visualização.
-- **Cartão das miosótis:** abrir o detalhe das flores; Escape fecha o detalhe.
+Abra `index.html` em um navegador moderno. Mantenha a pasta `assets` junto dos arquivos: as imagens são locais e o jogo funciona offline.
 
-O avião aquece a hélice, percorre a pista, decola e desenha **A ❤️ R** com fumaça. O trator atravessa o campo e corta as flores nas células que formam **I LOVE U**, deixando o restante do jardim azul. As miosótis têm cinco pétalas azuis e centro amarelo, além de um canteiro permanente com plaquinha.
+O jogo ocupa toda a janela, sem rolagem. O botão **Tela cheia** também permite esconder a interface do navegador quando suportado.
 
-## Publicação no GitHub Pages
+- **WASD / setas:** caminhar; no celular, use os botões sobre o cenário.
+- **+ / − / roda do mouse:** aproximar ou afastar a câmera. Ao aproximar e caminhar, a câmera acompanha o personagem.
+- **Arrastar o cenário:** mover a câmera.
+- **⌖:** enquadrar a fazenda inteira.
+- **Colheita automática:** iniciar a sequência de 36 segundos. A câmera se afasta para mostrar as mensagens.
+- **Ⅱ / ▷:** pausar e continuar.
+- **Repetir a surpresa:** restaurar as flores e recomeçar.
+- **♪:** ativar/desativar a melodia, desligada inicialmente.
+- **≈:** reduzir movimentos decorativos; respeita a preferência do sistema ao abrir. Os movimentos essenciais da colheita permanecem; use Pausar quando desejar.
+- **Cartão / flor azul:** ver o detalhe das miosótis. Escape fecha o detalhe.
 
-O projeto inclui `.github/workflows/pages.yml`. No repositório, configure **Settings → Pages → Build and deployment → Source → GitHub Actions**. Cada envio para `main` executa os testes e publica os arquivos estáticos. Nenhum segredo precisa ser adicionado ao código.
+O avião prepara a decolagem na pista e escreve **A ❤️ R** em fumaça sobre o terreno. O trator percorre o canteiro, revelando **I LOVE U** entre as flores azuis.
 
-Para um novo repositório, envie **o conteúdo desta pasta** para a raiz. A pasta `.github` também precisa ser enviada. O nome do repositório pode ser `love-farm`.
+## Projeto
 
-## Arquivos
+- `index.html` e `style.css`: interface sobre o jogo, responsiva e sem margens.
+- `game.js`: renderização Canvas, câmera, veículos, nuvens, controles e áudio.
+- `farm-core.js`: trajetórias e cronologia da surpresa.
+- `assets/farm-aerial.webp`: cenário aéreo realista.
+- `assets/cloud.webp`: nuvem com transparência.
+- `assets/README.md`: origem das artes e prompts usados.
+- `tests/core.test.cjs`: verificações da geometria e da sequência.
 
-- `index.html`: interface, instruções e detalhe das flores.
-- `style.css`: layout responsivo.
-- `farm-core.js`: geometria das mensagens e cronologia da sequência.
-- `game.js`: desenho Canvas, animação, som e controles.
-- `favicon.svg`: ícone local.
-- `tests/core.test.cjs`: verificações da trajetória, desenho e cronologia.
+As camadas de terreno, flores, fumaça e sombras das nuvens são armazenadas em memória para evitar redesenhar detalhes estáticos a cada quadro.
 
-## Verificação de desenvolvimento
+## Publicação
 
-O jogo não precisa de Node.js. Para executar os testes opcionais com Node.js 22 ou superior:
+O GitHub Pages está configurado para publicação por GitHub Actions. Cada envio para `main` verifica o JavaScript, executa os testes e publica os arquivos, incluindo `assets/`. Não é necessário adicionar segredos ao código.
+
+Para outro repositório, envie o conteúdo desta pasta para a raiz e selecione **Settings → Pages → Source → GitHub Actions**.
+
+## Verificações
+
+Com Node.js 22 ou superior (opcional; não necessário para jogar):
 
 ```sh
 node --check game.js
@@ -42,4 +51,6 @@ node --check farm-core.js
 node --test tests/core.test.cjs
 ```
 
-Toda a ilustração é desenhada pelo código. Não há rastreamento, pedidos de rede ou armazenamento de dados pessoais. O estado é reiniciado ao recarregar a página.
+A reformulação foi verificada no navegador em tela de computador, celular vertical e horizontal: carregamento offline, movimento, zoom, tela cheia, detalhe das flores, colheita progressiva, pausa, mensagens completas, repetição e som.
+
+Sem rastreamento, armazenamento de dados pessoais ou chamadas de rede durante o jogo. O estado recomeça ao recarregar.

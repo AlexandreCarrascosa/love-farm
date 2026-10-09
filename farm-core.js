@@ -13,11 +13,11 @@
     ' ': ['00','00','00','00','00','00','00']
   };
   const rows = Array.from({ length: 7 }, (_, row) => [...'I LOVE U'].map(c => glyphs[c][row]).join('0'));
-  const field = { x: 397, y: 442, cellW: 15, cellH: 23, cols: rows[0].length, rows: 7 };
+  const field = { x: 432, y: 410, cellW: 13, cellH: 27, cols: rows[0].length, rows: 7 };
   const route = [];
   for (let row = 0; row < 7; row++) for (let i = 0; i < field.cols; i++) {
     const col = row % 2 ? field.cols - 1 - i : i;
-    route.push({ x: field.x + col * field.cellW + 7.5, y: field.y + row * field.cellH + 11.5, row, col, cut: rows[row][col] === '1' });
+    route.push({ x: field.x + col * field.cellW + field.cellW / 2, y: field.y + row * field.cellH + field.cellH / 2, row, col, cut: rows[row][col] === '1' });
   }
   function path(points, ink = true) {
     const out = [];

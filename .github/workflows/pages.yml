@@ -31,6 +31,7 @@ jobs:
         run: |
           mkdir public
           cp index.html style.css farm-core.js game.js favicon.svg public/
+          cp -R assets public/assets
           touch public/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

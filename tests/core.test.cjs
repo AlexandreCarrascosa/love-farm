@@ -4,7 +4,7 @@ const F = require('../farm-core.js');
 
 test('the tractor visits every field cell once, without teleporting', () => {
   assert.equal(new Set(F.route.map(p=>p.row+','+p.col)).size,F.field.cols*7);
-  F.route.slice(1).forEach((p,i)=>assert.ok(Math.hypot(p.x-F.route[i].x,p.y-F.route[i].y)<=23));
+  F.route.slice(1).forEach((p,i)=>assert.ok(Math.hypot(p.x-F.route[i].x,p.y-F.route[i].y)<=Math.max(F.field.cellW,F.field.cellH)));
   assert.ok(F.route.some(p=>p.cut));
   assert.ok(F.route.some(p=>!p.cut));
 });
